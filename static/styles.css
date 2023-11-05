@@ -1,0 +1,9 @@
+.titulo {
+    font-size: 36px;
+    color: #580909;
+    text-align: center;
+    font-weight: bold;
+}
+.imagen{
+    max-width: 400px;
+}
