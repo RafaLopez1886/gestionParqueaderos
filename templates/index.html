@@ -21,7 +21,7 @@
             <div class="card">
                 <div class="card-body">
                     <h2>Usuarios</h2>
-                    <a href="#" class="btn btn-secondary ">Ingresa</a>
+                    <a href="{{ url_for('usuarios') }}" class="btn btn-secondary ">Ingresa</a>
                     <div class="imagen">
                       <img src="{{ url_for('static', filename='usuarios.jpg') }}" alt="Imagen de fondo" style="width: 100%; max-width: 3000px">
                     </div>
@@ -32,7 +32,7 @@
             <div class="card">
                 <div class="card-body">
                     <h2>Celdas</h2>
-                    <a href="#" class="btn btn-secondary ">Ingresa</a>
+                    <a href="{{ url_for('celdas') }}" class="btn btn-secondary ">Ingresa</a>
                     <div class="imagen">
                       <img src="{{ url_for('static', filename='celdas.jpg') }}" alt="Imagen de fondo" style="width: 100%; max-width: 3000px">
                     </div>

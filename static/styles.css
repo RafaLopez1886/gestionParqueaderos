@@ -7,3 +7,13 @@
 .imagen{
     max-width: 400px;
 }
+
+.container {
+    margin-top: 50px; /* Ajusta la distancia desde la parte superior según sea necesario */
+}
+
+#celdasContainer, #celdaInfoForm {
+    border: 1px solid #ddd; /* Agrega un borde para mayor claridad */
+    padding: 20px; /* Agrega relleno para mejorar el aspecto */
+    margin-bottom: 20px; /* Ajusta la distancia entre el conjunto de celdas y el formulario */
+}

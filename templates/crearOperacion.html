@@ -26,6 +26,21 @@
                             <div class="mb-3">
                                 <input type="text" name="cedulaParq" placeholder="Documento" class="form-control">
                             </div>
+                            <div class="mb-3 row">
+                                <div class="col-md-6">
+                                    <label for="tipoVehiculo">Tipo de Vehículo:</label>
+                                    <select name="tipoVehiculo" class="form-control" onchange="updateInputValue(this)">
+                                        <option value="Bicicleta">Bicicleta</option>
+                                        <option value="Automóvil">Automóvil</option>
+                                        <option value="Moto">Moto</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="tipoVehiculoInput">Tipo de Vehículo Seleccionado:</label>
+                                    <input type="text" name="tipoVehiculoParq" id="tipoVehiculoInput"
+                                        class="form-control" readonly>
+                                </div>
+                            </div>
                             <div class="mb-3">
                                 <input type="text" name="marcaParq" placeholder="Marca Vehículo" class="form-control">
                             </div>
@@ -35,9 +50,17 @@
                             <div class="mb-3">
                                 <input type="text" name="placaParq" placeholder="Placa Vehículo" class="form-control">
                             </div>
-                            <div class="mb-3">
-                                <input type="text" name="celdaParq" placeholder="Celda Parqueadero"
-                                    class="form-control">
+                            <div class="mb-3 row">
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                                        data-bs-target="#exampleModal">
+                                        Seleccionar celda
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="tipoVehiculoInput">Celda Seleccionada:</label>
+                                    <input type="text" name="celdaParq" class="form-control" readonly>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <input type="text" name="ingresoParq" placeholder="Hora de Ingreso"
@@ -51,8 +74,13 @@
                                 data-bs-target="#exampleModalToggle2" data-bs-toggle="modal">
                                 Generar nueva operación
                             </button>
-
+                            <script>
+                                function updateInputValue(select) {
+                                    document.getElementById("tipoVehiculoInput").value = select.value;
+                                }
+                            </script>
                         </form>
+
                     </div>
                 </div>
             </div>
@@ -62,6 +90,99 @@
         </div>
     </div>
 </div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Seleccionar Celda</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Contenedor para botones de celdas -->
+                <div id="celdasContainer"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- JavaScript para generar dinámicamente los botones de celdas y actualizar el campo de texto -->
+<script>
+    // Función para obtener el estado de disponibilidad de una celda
+    async function obtenerEstadoCelda(celda) {
+        const response = await fetch(`/obtener_estado_celda/${celda}`);
+        const data = await response.json();
+        return data.dispo;
+    }
+
+    // Simula la lista de celdas
+    const celdas = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10',
+        'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10',
+        'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10',
+        'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10',
+        'E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9', 'E10',
+        'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10'];
+
+    // Función para generar botones de celdas
+    async function generarBotonesCeldas() {
+        const celdasContainer = document.getElementById('celdasContainer');
+        const celdaParqInput = document.querySelector('input[name="celdaParq"]');
+
+        // Limpia el contenedor
+        celdasContainer.innerHTML = '';
+
+        // Organiza las celdas en filas de 10
+        for (let i = 0; i < celdas.length; i += 10) {
+            const fila = document.createElement('div');
+            fila.classList.add('btn-group', 'btn-group-horizontal', 'mb-3');
+
+            // Agrega botones de celda a la fila
+            for (let j = i; j < i + 10 && j < celdas.length; j++) {
+                // Obtiene el estado de disponibilidad de la celda
+                const estadoCelda = await obtenerEstadoCelda(celdas[j]);
+
+                // Crea el botón de celda
+                const botonCelda = document.createElement('button');
+                botonCelda.type = 'button';
+                botonCelda.classList.add('btn', 'mx-2');
+
+                // Configura el botón según el estado de disponibilidad
+                if (estadoCelda === 1) {
+                    botonCelda.classList.add('btn-secondary');
+                    botonCelda.textContent = celdas[j];
+                    botonCelda.addEventListener('click', function () {
+                        // Lógica para manejar el clic en la celda seleccionada
+                        alert('Celda seleccionada: ' + celdas[j]);
+                        // Asigna el valor al campo de texto
+                        celdaParqInput.value = celdas[j];
+                    });
+                } else {
+                    botonCelda.classList.add('btn-light', 'disabled');
+                    botonCelda.textContent = celdas[j];
+                    botonCelda.disabled = true;
+                }
+
+                // Agrega el botón al grupo de botones
+                fila.appendChild(botonCelda);
+            }
+
+            // Agrega la fila al contenedor
+            celdasContainer.appendChild(fila);
+        }
+    }
+
+    // Llama a la función al cargar el modal
+    document.getElementById('exampleModal').addEventListener('shown.bs.modal', function () {
+        generarBotonesCeldas();
+    });
+</script>
+
 
 
 

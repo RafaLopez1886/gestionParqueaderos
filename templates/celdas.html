@@ -1,0 +1,147 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+
+<h1 class="titulo">Módulo de Celdas</h1>
+
+<br>
+
+
+<div class="container text-center mt-4">
+    <h5 class="alert alert-info">
+        En este módulo, podrá consultar la disponibilidad de las celdas del parqueadero. 
+        Las celdas <span class="text-danger">rojas</span> no están disponibles, las celdas <span class="text-success">verdes</span> sí lo están. 
+        Seleccione una celda para ver más detalles.
+    </h5>
+</div>
+
+<div class="container">
+    <div class="row">
+        <!-- Contenedor para botones de celdas -->
+        <div class="col-md-6" id="celdasContainer"></div>
+        
+        <!-- Contenedor centrado para el formulario -->
+        <div class="col-md-6 d-flex align-items-center justify-content-center">
+            <form id="celdaInfoForm">
+                <div class="mb-3">
+                    <label for="codigoCelda">Código de Celda:</label>
+                    <input type="text" id="codigoCelda" class="form-control" readonly>
+                </div>
+                <div class="mb-3">
+                    <label for="disponibilidad">Disponibilidad:</label>
+                    <input type="text" id="disponibilidad" class="form-control" readonly>
+                </div>
+                <div class="mb-3">
+                    <label for="usuarioAsignado">Usuario Asignado:</label>
+                    <input type="text" id="usuarioAsignado" class="form-control" readonly>
+                </div>
+                <div class="mb-3">
+                    <label for="telefonoAsignado">Teléfono de usuario:</label>
+                    <input type="text" id="telefonoAsignado" class="form-control" readonly>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // Función para obtener el estado de disponibilidad de una celda
+    async function obtenerEstadoCelda(celda) {
+        const response = await fetch(`/obtener_estado_celda/${celda}`);
+        const data = await response.json();
+        return data.dispo;
+    }
+
+    // Simula la lista de celdas
+    const celdas = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10',
+        'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10',
+        'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10',
+        'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10',
+        'E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9', 'E10',
+        'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10'];
+
+    // Función para generar botones de celdas
+    async function generarBotonesCeldas() {
+        const celdasContainer = document.getElementById('celdasContainer');
+        const celdaInfoForm = document.getElementById('celdaInfoForm');
+
+        // Limpia el contenedor y el formulario
+        celdasContainer.innerHTML = '';
+        celdaInfoForm.reset();
+
+        // Organiza las celdas en filas de 10
+        for (let i = 0; i < celdas.length; i += 10) {
+            const fila = document.createElement('div');
+            fila.classList.add('btn-group', 'btn-group-horizontal', 'mb-3', 'd-flex', 'justify-content-center');
+
+            // Agrega botones de celda a la fila
+            for (let j = i; j < i + 10 && j < celdas.length; j++) {
+                // Obtiene el estado de disponibilidad de la celda
+                const estadoCelda = await obtenerEstadoCelda(celdas[j]);
+
+                // Crea el botón de celda
+                const botonCelda = document.createElement('button');
+                botonCelda.type = 'button';
+                botonCelda.classList.add('btn', 'mx-2');
+
+                // Configura el botón según el estado de disponibilidad
+                botonCelda.textContent = celdas[j];
+                botonCelda.addEventListener('click', async function () {
+                    // Lógica para manejar el clic en la celda seleccionada
+
+                    // Asigna el valor al campo de texto
+                    document.getElementById('codigoCelda').value = celdas[j];
+
+                    // Obtiene la información de la celda
+                    const infoCelda = await obtenerInformacionCelda(celdas[j]);
+
+                    // Actualiza el formulario con la información de la celda
+                    document.getElementById('disponibilidad').value = infoCelda.disponibilidad;
+                    document.getElementById('usuarioAsignado').value = infoCelda.usuarioAsignado || 'Ninguno';
+                    document.getElementById('telefonoAsignado').value = infoCelda.telefonoAsignado || 'Ninguno';
+                });
+
+                // Aplica estilos según el estado de disponibilidad
+                if (estadoCelda === 1) {
+                    botonCelda.classList.add('btn-success');  // Verde
+                } else {
+                    botonCelda.classList.add('btn-danger');   // Rojo
+                }
+
+                // Agrega el botón al grupo de botones
+                fila.appendChild(botonCelda);
+            }
+
+            // Agrega la fila al contenedor
+            celdasContainer.appendChild(fila);
+        }
+    }
+
+    // Función para obtener información de la celda
+    async function obtenerInformacionCelda(celda) {
+        try {
+            const response = await fetch(`/obtener_informacion_celda/${celda}`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error al obtener información de la celda:', error);
+            return {
+                disponibilidad: 0,
+                usuarioAsignado: 'Ninguno',
+                telefonoAsignado: 'Ninguno'
+            };
+        }
+    }
+
+    // Llama a la función al cargar la página
+    generarBotonesCeldas();
+</script>
+
+
+
+<div class="card-body d-flex justify-content-center align-items-center">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Volver a Inicio</a>
+</div>
+
+{% endblock %}
