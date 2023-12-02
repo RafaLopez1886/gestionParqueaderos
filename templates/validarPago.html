@@ -1,0 +1,19 @@
+<!-- validarPago.html -->
+
+{% extends 'layout.html' %}
+
+{% block body %}
+    <div class="container">
+        <h1>Confirmar Pago</h1>
+        <p>Usuario: {{ usuario }}</p>
+        <p>Total de minutos: {{ minutos }}</p>
+        <p>Total a pagar: ${{ valor_minuto }}</p>
+
+        <form action="{{ url_for('confirmar_pago', id=id_operacion) }}" method="POST">
+            <button type="submit" class="btn btn-primary">Confirmar Pago</button>
+        </form>
+
+        <a href="{{ url_for('operaciones') }}" class="btn btn-secondary">Volver a Operaciones</a>
+    </div>
+    
+{% endblock %}

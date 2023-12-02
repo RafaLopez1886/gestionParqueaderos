@@ -136,13 +136,13 @@
             <td>Ingreso</td>
             <td>Salida</td>
             <td>Observaciones</td>
+            <td>Estado</td>
             <td>Operaciones</td>
         </tr>
     </thead>
     <tbody>
         {% for usuario in usuarios %}
         <tr>
-            <td>{{ usuario.1 }}</td>
             <td>{{ usuario.2 }}</td>
             <td>{{ usuario.3 }}</td>
             <td>{{ usuario.4 }}</td>
@@ -152,8 +152,13 @@
             <td>{{ usuario.8 }}</td>
             <td>{{ usuario.9 }}</td>
             <td>{{ usuario.10 }}</td>
+            <td>{{ usuario.11 }}</td>
+            <td class="estado-celda {{ 'pagado' if usuario.12 == 'Pagado' else 'no-pagado' }}">
+                {{ usuario.12 }}
+            </td>
             <td>
                 <a href="/registrar_salida/{{ usuario.0 }}" class="btn btn-danger">Registrar Salida</a>
+                <a href="{{ url_for('generar_pago', id=usuario.1) }}" class="btn btn-primary">Generar Pago</a>
             </td>
         </tr>
         {% endfor %}
@@ -163,5 +168,19 @@
 <div class="card-body d-flex justify-content-center align-items-center">
     <a href="{{ url_for('index') }}" class="btn btn-secondary">Volver a Inicio</a>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var celdas = document.querySelectorAll('.estado-celda');
+
+        celdas.forEach(function(celda) {
+            if (celda.textContent.trim() === 'Pagado') {
+                celda.style.backgroundColor = 'green';
+            } else {
+                celda.style.backgroundColor = 'red';
+            }
+        });
+    });
+</script>
 
 {% endblock %}

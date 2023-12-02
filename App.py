@@ -3,6 +3,7 @@ from flask_mysqldb import MySQL
 from datetime import datetime
 from flask import jsonify
 
+
 app = Flask(__name__)
 app.config["MYSQL_HOST"] = "127.0.0.1"
 app.config["MYSQL_USER"] = "root"
@@ -24,7 +25,7 @@ def operaciones():
     cur = mysql.connection.cursor()
 
     cur.execute(
-        "SELECT usuarios.pk_usuarios AS Id, usuarios.usuarios_nombre AS Nombre, usuarios.usuarios_cedula AS Documento, gestion_vehiculos.vehiculos_marca AS Marca, vehiculos.nombre_tipoVehiculo AS Tipo, gestion_vehiculos.vehiculos_color AS Color, gestion_vehiculos.vehiculos_placa AS Placa, celdas.celdas_codigo AS Celda, gestion_vehiculos.vehiculos_ingreso AS Ingreso, gestion_vehiculos.vehiculos_salida AS Salida, gestion_vehiculos.vehiculos_observaciones AS Observaciones FROM gestion_vehiculos JOIN usuarios ON usuarios.usuarios_cedula = gestion_vehiculos.fk_usuarios JOIN vehiculos ON vehiculos.pk_tipoVehiculo = gestion_vehiculos.fk_tipoVehiculo JOIN celdas ON celdas.pk_celdas = gestion_vehiculos.fk_celda"
+        "SELECT usuarios.pk_usuarios AS Id, gestion_vehiculos.pk_vehiculos AS idOperacion, usuarios.usuarios_nombre AS Nombre, usuarios.usuarios_cedula AS Documento, gestion_vehiculos.vehiculos_marca AS Marca, vehiculos.nombre_tipoVehiculo AS Tipo, gestion_vehiculos.vehiculos_color AS Color, gestion_vehiculos.vehiculos_placa AS Placa, celdas.celdas_codigo AS Celda, gestion_vehiculos.vehiculos_ingreso AS Ingreso, gestion_vehiculos.vehiculos_salida AS Salida, gestion_vehiculos.vehiculos_observaciones AS Observaciones, gestion_vehiculos.estadoPago AS Estado FROM gestion_vehiculos JOIN usuarios ON usuarios.usuarios_cedula = gestion_vehiculos.fk_usuarios JOIN vehiculos ON vehiculos.pk_tipoVehiculo = gestion_vehiculos.fk_tipoVehiculo JOIN celdas ON celdas.pk_celdas = gestion_vehiculos.fk_celda"
     )
     data = cur.fetchall()
     print(data)
@@ -43,6 +44,29 @@ def usuarios():
         "usuarios.html", usuario_existe=usuario_existe, usuarios=data
     )
 
+
+@app.route("/tarifas")
+def tarifas():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM vehiculos")
+    data = cur.fetchall()
+
+    cur.execute("""
+        SELECT 
+            usuarios.usuarios_nombre,
+            vehiculos.nombre_tipoVehiculo,
+            gestion_vehiculos.vehiculos_ingreso,
+            gestion_vehiculos.vehiculos_salida,
+            gestion_vehiculos.totalMinutos,
+            gestion_vehiculos.totalPago
+        FROM gestion_vehiculos
+        JOIN usuarios ON usuarios.usuarios_cedula = gestion_vehiculos.fk_usuarios
+        JOIN vehiculos ON vehiculos.pk_tipoVehiculo = gestion_vehiculos.fk_tipoVehiculo
+        WHERE gestion_vehiculos.estadoPago = 'Pagado'
+    """)
+    operaciones_pagadas = cur.fetchall()
+
+    return render_template("pagos.html", tarifas=data, operaciones_pagadas=operaciones_pagadas)
 
 @app.route("/celdas")
 def celdas():
@@ -230,6 +254,13 @@ def crearOperacion():
                 )
                 mysql.connection.commit()
                 flash("Operación creada")
+
+                # Obtén el id de la última operación
+                cur.execute("SELECT LAST_INSERT_ID()")
+                last_id = cur.fetchone()[0]
+
+                # Redirige al modal de pago
+                return redirect(url_for("mostrarModalPago", id=last_id))
             except Exception as e:
                 print("Error al crear la operación:", str(e))
                 flash(
@@ -243,12 +274,6 @@ def crearOperacion():
             return redirect(url_for("operaciones"))
 
         return redirect(url_for("operaciones")) 
-
-
-@app.route("/crearOperacion")
-def editarOperacion():
-    return render_template("crearOperacion.html")
-
 
 @app.route("/registrar_salida/<string:id>")
 def registrarSalida(id):
@@ -302,6 +327,103 @@ def registrarSalida(id):
 
     return redirect(url_for("operaciones"))
 
+@app.route("/crearOperacion")
+def editarOperacion():
+    return render_template("crearOperacion.html")
+
+def calcular_precio(total_minutos, tipo_vehiculo):
+    cur = mysql.connection.cursor()
+    cur.execute(
+        "SELECT valorMinuto_tipoVehiculo FROM vehiculos WHERE pk_tipoVehiculo = %s",
+        (tipo_vehiculo,),
+    )
+    
+    # Verifica si hay resultados antes de intentar acceder a ellos
+    result = cur.fetchone()
+    if result is not None:
+        valor_minuto = result[0]
+        total_pago = total_minutos * valor_minuto
+        return total_pago
+    else:
+        raise ValueError("No se encontró el tipo de vehículo: {}".format(tipo_vehiculo))
+
+
+@app.route("/generar_pago/<int:id>", methods=["GET"])
+def generar_pago(id):
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM gestion_vehiculos WHERE pk_vehiculos = %s", (id,))
+    usuario = cur.fetchone()
+    print("usuario seleccionado", usuario)
+
+    if not usuario or usuario[11]:  # Si el usuario no existe o ya pagó, redirige a operaciones
+        flash("Advertencia: Esta operación ya presenta un pago registrado.")
+        return redirect(url_for("operaciones"))
+
+    entrada = usuario[7]
+    salida = usuario[8]
+    cedulaUsuario = usuario[1]
+    
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT usuarios_nombre FROM usuarios WHERE usuarios_cedula = %s", (cedulaUsuario,))
+    nombreUsuario = cur.fetchone()
+    
+    if not salida:  # Si no hay salida registrada, muestra advertencia
+        flash("Advertencia: Registre la salida del vehículo antes de generar el pago.")
+        return redirect(url_for("operaciones"))
+
+    # Calcula la cantidad de minutos entre entrada y salida
+    tiempo_entrada = datetime.strptime(str(entrada), "%Y-%m-%d %H:%M:%S")
+    tiempo_salida = datetime.strptime(str(salida), "%Y-%m-%d %H:%M:%S")
+    total_minutos = int((tiempo_salida - tiempo_entrada).total_seconds() / 60)
+
+    cur = mysql.connection.cursor()
+    cur.execute("UPDATE gestion_vehiculos SET totalMinutos = '%s' WHERE pk_vehiculos = %s", (total_minutos, id,))
+    mysql.connection.commit()
+
+    # Calcula el valor a pagar
+    total_pago = calcular_precio(total_minutos, usuario[2])
+
+    cur = mysql.connection.cursor()
+    cur.execute("UPDATE gestion_vehiculos SET totalPago = '%s' WHERE pk_vehiculos = %s", (total_pago, id,))
+    mysql.connection.commit()
+
+    return render_template(
+        "validarPago.html",
+        usuario=nombreUsuario[0],
+        minutos=total_minutos,
+        valor_minuto=total_pago,
+        id_operacion=id,
+    )
+
+@app.route("/confirmar_pago/<int:id>", methods=["POST"])
+def confirmar_pago(id):
+    cur = mysql.connection.cursor()
+    cur.execute("UPDATE gestion_vehiculos SET estadoPago = 'Pagado' WHERE pk_vehiculos = %s", (id,))
+    mysql.connection.commit()
+    return redirect(url_for("operaciones"))
+
+
+@app.route("/editar_tarifa/<int:id>", methods=['GET', 'POST'])
+def editar_tarifa(id):
+    cur = mysql.connection.cursor()
+    
+    if request.method == 'POST':
+        # Manejar la lógica para guardar los cambios en la base de datos
+        nueva_tarifa = request.form['tarifa']
+        
+        # Actualizar la tarifa en la base de datos
+        cur.execute("UPDATE vehiculos SET valorMinuto_tipoVehiculo = %s WHERE pk_tipoVehiculo = %s", (nueva_tarifa, id))
+        mysql.connection.commit()
+        
+        flash("Tarifa actualizada correctamente")
+        return redirect(url_for('tarifas'))
+    else:
+        # Lógica para cargar los datos existentes del tipo de vehículo
+        cur.execute("SELECT * FROM vehiculos WHERE pk_tipoVehiculo = %s", (id,))
+        tipoVehiculo = cur.fetchone()
+        print(tipoVehiculo)
+        
+        return render_template("editar_tarifa.html", tipoVehiculo=tipoVehiculo)
 
 if __name__ == "__main__":
-    app.run(port=3003, debug=True)
+    app.run(port=3007, debug=True)

@@ -1,0 +1,115 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+{% with mensaje = get_flashed_messages() %}
+{% if mensaje %}
+{% for mens in mensaje %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <p>{{ mens }}</p>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+
+<div class="container-fluid">
+    <h1 class="titulo text-center">Módulo de Pagos</h1>
+
+    <div class="row">
+        <!-- Primera tabla -->
+        <div class="col-md-6">
+            <h3>Tarifas creadas</h3>
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered bg-white">
+                    <!-- Encabezado de la tabla -->
+                    <thead>
+                        <tr>
+                            <th>Vehículo</th>
+                            <th>Tarifa Minuto</th>
+                            <th>Operaciones</th>
+                        </tr>
+                    </thead>
+                    <!-- Cuerpo de la tabla -->
+                    <tbody>
+                        {% for tarifa in tarifas %}
+                        <tr>
+                            <td>{{ tarifa.1 }}</td>
+                            <td>{{ tarifa.2 }}</td>
+                            <td>
+                                <a href="{{ url_for('editar_tarifa', id=tarifa.0) }}" class="btn btn-primary">Editar Tarifa</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Segunda tabla -->
+        <div class="col-md-6">
+            <h3>Operaciones Pagadas</h3>
+            <button id="exportBtn" class="btn btn-success">Exportar a Excel</button>
+            <table class="table table-striped table-bordered bg-white" id="tableId">
+                <!-- Encabezado de la tabla -->
+                <thead>
+                    <tr>
+                        <td>Nombre</td>
+                        <td>Tipo Vehículo</td>
+                        <td>Ingreso</td>
+                        <td>Salida</td>
+                        <td>Total Minutos</td>
+                        <td>Total Pago</td>
+                    </tr>
+                </thead>
+                <!-- Cuerpo de la tabla -->
+                <tbody>
+                    {% for operacion in operaciones_pagadas %}
+                    <tr>
+                        <td>{{ operacion.0 }}</td>
+                        <td>{{ operacion.1 }}</td>
+                        <td>{{ operacion.2 }}</td>
+                        <td>{{ operacion.3 }}</td>
+                        <td>{{ operacion.4 }}</td>
+                        <td>{{ operacion.5 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card-body d-flex justify-content-center align-items-center">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Volver a Inicio</a>
+</div>
+
+<script>
+    document.getElementById('exportBtn').addEventListener('click', function () {
+        exportToExcel('tableId');
+    });
+
+    function exportToExcel(tableId) {
+        var table = document.getElementById(tableId);
+        var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet 1" });
+        var wbout = XLSX.write(wb, { bookType: 'xlsx', bookSST: true, type: 'binary' });
+
+        function s2ab(s) {
+            var buf = new ArrayBuffer(s.length);
+            var view = new Uint8Array(buf);
+            for (var i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+            return buf;
+        }
+
+        saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream' }), 'operaciones_pagadas.xlsx');
+    }
+</script>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+
+
+
+{% endblock %}

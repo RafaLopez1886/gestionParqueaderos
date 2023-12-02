@@ -17,3 +17,12 @@
     padding: 20px; /* Agrega relleno para mejorar el aspecto */
     margin-bottom: 20px; /* Ajusta la distancia entre el conjunto de celdas y el formulario */
 }
+
+
+.estado-pagado {
+    background-color: green;
+}
+
+.estado-no-pagado {
+    background-color: red;
+}

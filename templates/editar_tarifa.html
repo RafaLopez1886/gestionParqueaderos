@@ -1,0 +1,33 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h1 class="text-center">Editar Tarifa</h1>
+            <form action="{{ url_for('editar_tarifa', id=tipoVehiculo.0) }}" method="post">
+                <!-- Mostrar nombre del tipo de vehículo en modo solo lectura -->
+                <div class="mb-3">
+                    <label for="tipoVehiculo" class="form-label">Tipo de Vehículo</label>
+                    <input type="text" class="form-control" id="tipoVehiculo" name="tipoVehiculo" value="{{ tipoVehiculo.1 }}" readonly>
+                </div>
+                <!-- Permitir editar el valor de la tarifa -->
+                <div class="mb-3">
+                    <label for="tarifa" class="form-label">Tarifa Minuto</label>
+                    <input type="text" class="form-control" id="tarifa" name="tarifa" value="{{ tipoVehiculo.2 }}">
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+            <div class="text-center mt-3">
+                <a href="{{ url_for('tarifas') }}" class="btn btn-secondary">Volver a Tarifas</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}
